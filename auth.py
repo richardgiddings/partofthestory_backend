@@ -20,7 +20,7 @@ app = FastAPI()
 router = APIRouter()
 
 # Token expiry from env
-TOKEN_EXPIRY_IN_MINUTES = config('TOKEN_EXPIRY_IN_MINUTES', default=20, cast=int)
+TOKEN_EXPIRY_IN_MINUTES = config('TOKEN_EXPIRY_IN_MINUTES', default=60, cast=int)
 
 # OAuth Setup
 oauth = OAuth()
@@ -34,7 +34,7 @@ oauth.register(
     access_token_params=None,
     refresh_token_url=None,
     authorize_state=config("SECRET_KEY"),
-    redirect_uri="http://127.0.0.1:8000/auth",
+    redirect_uri=config("REDIRECT_URL"),
     jwks_uri="https://www.googleapis.com/oauth2/v3/certs",
     client_kwargs={"scope": "openid profile email"},
 )
@@ -109,7 +109,7 @@ async def auth(request: Request):
         raise HTTPException(status_code=401, detail="Google authentication failed.")
 
     user = token.get("userinfo")
-    expires_in = token.get("expires_in")
+    expires_in = 10 #token.get("expires_in")
     user_id = user.get("sub")
     iss = user.get("iss")
     user_email = user.get("email")
@@ -149,6 +149,8 @@ async def auth(request: Request):
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
+
+    # default expiry is 1 hour from expires_delta
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=TOKEN_EXPIRY_IN_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=ALGORITHM)
@@ -158,8 +160,8 @@ Check whether logged in user already on database and if not add them
 """
 def insert_user(user_id: str):
     with Session(engine) as session:
-        users = session.exec(select(Users).filter_by(user_id=user_id)).all()
+        users = session.exec(select(Users).filter_by(auth_user_id=user_id)).all()
         if not users:
-            user = Users(user_id=user_id)
+            user = Users(auth_user_id=user_id)
             session.add(user)
             session.commit()

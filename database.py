@@ -13,7 +13,7 @@ DB_PASSWORD = config('DB_PASSWORD')
 DB_PORT     = config('DB_PORT')
 
 SQLALCHEMY_DATABASE_URL = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=False)
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
