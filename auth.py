@@ -109,7 +109,7 @@ async def auth(request: Request):
         raise HTTPException(status_code=401, detail="Google authentication failed.")
 
     user = token.get("userinfo")
-    expires_in = 10 #token.get("expires_in")
+    expires_in = token.get("expires_in")
     user_id = user.get("sub")
     iss = user.get("iss")
     user_email = user.get("email")
