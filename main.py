@@ -18,6 +18,10 @@ from models import *
 from auth import *
 from database import SessionDep, get_session, create_db_and_tables
 
+# profanity checker
+# https://pypi.org/project/safetext/
+from safetext import SafeText
+
 
 # CORS middleware
 ALLOWED_ORIGINS = config("ALLOWED_ORIGINS")
@@ -61,15 +65,11 @@ app.include_router(router)
 @app.get("/home")
 def get_response(session: SessionDep, current_user: dict = Depends(get_current_user)):
 
-    # extend session here?
-
     auth_user_id = current_user['user_id']
     user = session.exec(select(Users).where(Users.auth_user_id == auth_user_id)).first()
 
     if user:
-        print(f"HERE {user}")
         return {"message": "Welcome!", "user": current_user, "user_id": user.id}
-    print("THERE")
     return HTTPException(status_code=500, detail='Not logged in')
 
 
@@ -149,24 +149,47 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
     db_part = session.get(Part, part_id)
     part_data = part.model_dump(exclude_unset=True)
     part_text = part_data.get("part_text")
-    db_part.sqlmodel_update({"part_text": part_text, "date_complete": date_complete})
-    session.add(db_part)
+
+    # profanity check
+    st = SafeText(language='en')
+    text_results = st.check_profanity(text=part_text)
+    if text_results:
+        status = 418 # I'm a teapot
+    else:
+        db_part.sqlmodel_update({"part_text": part_text, "date_complete": date_complete})
+        session.add(db_part)
 
     # update the story if necessary
+    title_results = []
     if db_part.part_number == 1 or db_part.part_number == 5:
         db_story = session.get(Story, db_part.story_id)
         if db_part.part_number == 1:
             story_title = part_data.get("story_title")
-            db_story.sqlmodel_update({"title": story_title}) 
+
+            # profanity check
+            title_results = st.check_profanity(text=story_title)
+            if text_results:
+                status = 418 # I'm a teapot
+            else:
+                db_story.sqlmodel_update({"title": story_title}) 
+
         if db_part.part_number == 5:
             db_story.sqlmodel_update({"date_complete": date_complete})
-        session.add(db_story)
+
+        if not title_results:
+            session.add(db_story)
+
+    results = title_results + text_results
     
-    # refresh the session with the saved data and return the part
-    session.commit()
-    session.refresh(db_part)
-    if db_part.part_number == 5:
-        session.refresh(db_story)
+    if not results:
+        # refresh the session with the saved data and return the part
+        session.commit()
+        session.refresh(db_part)
+        if db_part.part_number == 5:
+            session.refresh(db_story)
+        status = 200
+    
+    return {"results": results, "status": status}
 
 
 # PATCH - save a part so you can come back to it (not complete)
@@ -178,27 +201,41 @@ def save_part(part_id: int, part: PartUpdate, session: SessionDep, current_user:
     part_text = part_data.get("part_text")
     story_title = part_data.get("story_title")
 
-    # get the part we are updating from the database
-    db_part = session.get(Part, part_id)
+    # profanity check
+    st = SafeText(language='en')
+    title_results = []
+    if story_title:
+        title_results = st.check_profanity(text=story_title)
+    text_results = st.check_profanity(text=part_text)
+    results = title_results + text_results
 
-    # get the story we are updating
-    db_story = session.get(Story, db_part.story_id)
+    if results:
+        status = 418 # I'm a teapot
+    else: 
+        # get the part we are updating from the database
+        db_part = session.get(Part, part_id)
 
-    # update the part db model with the request data
-    db_part.sqlmodel_update({"part_text": part_text})
-    session.add(db_part)
-    
-    # update the story db model with the request data
-    # if we are writing the first part of the story
-    if story_title is not None:
-        db_story.sqlmodel_update({"title": story_title})
-        session.add(db_story)
-    
-    # refresh the session with the saved data and return the part
-    session.commit()
-    session.refresh(db_part)
-    session.refresh(db_story)
+        # get the story we are updating
+        db_story = session.get(Story, db_part.story_id)
 
+        # update the part db model with the request data
+        db_part.sqlmodel_update({"part_text": part_text})
+        session.add(db_part)
+        
+        # update the story db model with the request data
+        # if we are writing the first part of the story
+        if story_title is not None:
+            db_story.sqlmodel_update({"title": story_title})
+            session.add(db_story)
+        
+        # refresh the session with the saved data and return the part
+        session.commit()
+        session.refresh(db_part)
+        session.refresh(db_story)
+
+        status = 200
+
+    return {"results": results, "status": status}
 
 # GET - a user's stories
 @app.get('/my_stories/')

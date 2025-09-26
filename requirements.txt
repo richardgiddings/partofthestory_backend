@@ -5,6 +5,7 @@ bcrypt==4.3.0
 cachetools==5.5.2
 certifi==2025.8.3
 cffi==2.0.0
+chardet==5.2.0
 charset-normalizer==3.4.3
 click==8.2.1
 cryptography==45.0.7
@@ -28,6 +29,7 @@ httpx==0.28.1
 idna==3.10
 itsdangerous==2.2.0
 Jinja2==3.1.6
+lingua-language-detector==2.1.1
 markdown-it-py==4.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2
@@ -44,6 +46,7 @@ pydantic-extra-types==2.10.5
 pydantic-settings==2.10.1
 pydantic_core==2.33.2
 Pygments==2.19.2
+pysrt==1.1.2
 python-decouple==3.8
 python-dotenv==1.1.1
 python-jose==3.5.0
@@ -54,6 +57,7 @@ rich==14.1.0
 rich-toolkit==0.15.1
 rignore==0.6.4
 rsa==4.9.1
+safetext==0.3.2
 sentry-sdk==2.37.1
 shellingham==1.5.4
 six==1.17.0
