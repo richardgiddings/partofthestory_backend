@@ -154,7 +154,7 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
     st = SafeText(language='en')
     text_results = st.check_profanity(text=part_text)
     if text_results:
-        status = 418 # I'm a teapot
+        status = 400 # Bad Request
     else:
         db_part.sqlmodel_update({"part_text": part_text, "date_complete": date_complete})
         session.add(db_part)
@@ -169,7 +169,7 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
             # profanity check
             title_results = st.check_profanity(text=story_title)
             if title_results:
-                status = 418 # I'm a teapot
+                status = 400 # Bad Request
             else:
                 db_story.sqlmodel_update({"title": story_title}) 
 
@@ -210,7 +210,7 @@ def save_part(part_id: int, part: PartUpdate, session: SessionDep, current_user:
     results = title_results + text_results
 
     if results:
-        status = 418 # I'm a teapot
+        status = 400 # # Bad Request
     else: 
         # get the part we are updating from the database
         db_part = session.get(Part, part_id)
