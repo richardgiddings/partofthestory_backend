@@ -185,7 +185,7 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
         # refresh the session with the saved data and return the part
         session.commit()
         session.refresh(db_part)
-        if db_part.part_number == 5:
+        if db_part.part_number == 1 or db_part.part_number == 5:
             session.refresh(db_story)
         status = 200
     
