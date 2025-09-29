@@ -168,7 +168,7 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
 
             # profanity check
             title_results = st.check_profanity(text=story_title)
-            if text_results:
+            if title_results:
                 status = 418 # I'm a teapot
             else:
                 db_story.sqlmodel_update({"title": story_title}) 
@@ -180,7 +180,7 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
             session.add(db_story)
 
     results = title_results + text_results
-    
+
     if not results:
         # refresh the session with the saved data and return the part
         session.commit()
