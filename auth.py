@@ -48,8 +48,13 @@ Get the currently logged in user
 """
 def get_current_user(access_token: Annotated[str | None, Cookie()] = None):
 
+    print("Getting current user from token...")
+
     if not access_token:
+        print("No access token found in cookies.")
         raise HTTPException(status_code=401, detail="Not authenticated")
+
+    print("Access token found, decoding...")
 
     credentials_exception = HTTPException(
         status_code=401,
@@ -58,6 +63,8 @@ def get_current_user(access_token: Annotated[str | None, Cookie()] = None):
     )
     try:
         payload = jwt.decode(access_token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
+
+        print("Token decoded successfully.")
 
         user_id: str = payload.get("sub")
         user_name: str = payload.get("user_name")
