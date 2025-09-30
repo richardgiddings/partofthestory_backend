@@ -111,7 +111,7 @@ def get_part(session: SessionDep, current_user: dict = Depends(get_current_user)
                 session.commit()
             else:
                 # All stories have 5 parts so create a new story and a part
-                story = Story()
+                story = Story(title="")
                 session.add(story)
                 session.commit()
 
