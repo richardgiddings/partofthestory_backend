@@ -150,7 +150,7 @@ async def auth(request: Request):
         value=access_token,
         httponly=True,
         secure=True,  # Ensure you're using HTTPS
-        samesite="strict",  # Set the SameSite attribute to None
+        samesite="None",  # Set the SameSite attribute to None
     )
     return response
 
