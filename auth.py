@@ -148,6 +148,7 @@ async def auth(request: Request):
     response.set_cookie(
         key="access_token",
         value=access_token,
+        domain="https://partofthestory-frontend.onrender.com"
         httponly=True,
         secure=True,  # Ensure you're using HTTPS
         samesite="Lax",  # Set the SameSite attribute to None
