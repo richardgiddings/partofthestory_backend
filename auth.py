@@ -109,7 +109,7 @@ async def auth(request: Request):
 
     try:
         user_info_endpoint = "https://www.googleapis.com/oauth2/v2/userinfo"
-        headers = {"Authorization": f'Bearer {token["access_token"]}', "SameSite": 'Lax'}
+        headers = {"Authorization": f'Bearer {token["access_token"]}'}
         google_response = requests.get(user_info_endpoint, headers=headers)
         user_info = google_response.json()
     except Exception as e:
@@ -150,7 +150,7 @@ async def auth(request: Request):
         value=access_token,
         httponly=True,
         secure=True,  # Ensure you're using HTTPS
-        samesite="Strict",  # Set the SameSite attribute to None
+        samesite="None",  # Set the SameSite attribute to None
     )
     return response
 
