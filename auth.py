@@ -152,7 +152,7 @@ async def auth(request: Request):
         domain="onrender.com",
         path="/",
         secure=True,  # Ensure you're using HTTPS
-        samesite="Lax",  # Set the SameSite attribute to None
+        samesite="None",  # Set the SameSite attribute to None
     )
     return response
 
