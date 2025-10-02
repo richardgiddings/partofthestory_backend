@@ -149,10 +149,10 @@ async def auth(request: Request):
         key="access_token",
         value=access_token,
         httponly=True,
-        #domain="onrender.com",
-        #path="/",
+        domain=config("COOKIE_DOMAIN"),
+        path=config("COOKIE_PATH"),
         secure=True,  # Ensure you're using HTTPS
-        samesite="None",  # Set the SameSite attribute to None
+        samesite=config("COOKIE_SAMESITE"),  # Set the SameSite attribute to None
     )
     return response
 
