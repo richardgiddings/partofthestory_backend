@@ -149,6 +149,7 @@ async def auth(request: Request):
         key="access_token",
         value=access_token,
         httponly=True,
+        domain="onrender.com",
         path="/",
         secure=True,  # Ensure you're using HTTPS
         samesite="Lax",  # Set the SameSite attribute to None
