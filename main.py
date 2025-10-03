@@ -96,7 +96,7 @@ def get_part(session: SessionDep, current_user: dict = Depends(get_current_user)
 
     if not part:
         # get a random available part
-        part = session.exec(select(Part).where(is_(Part.date_complete, None)).order_by(func.random())).first()
+        part = session.exec(select(Part).where(and_(is_(Part.date_complete, None),is_(Part.user_id, None))).order_by(func.random())).first()
     
         if not part: # no parts currently available so create one
             # can we create a part for an existing story?
