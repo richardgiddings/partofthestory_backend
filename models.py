@@ -17,6 +17,7 @@ class Users(UsersBase, table=True):
 class StoryBase(SQLModel):
     title:          str | None
     date_complete:  datetime | None
+    locked:         bool = Field(default=False)
 
 class Story(StoryBase, table=True):
     id:    int = Field(default=None, primary_key=True)
@@ -32,6 +33,7 @@ class PartBase(SQLModel):
     part_text:      str | None
     story_id:       int = Field(foreign_key="story.id")
     user_id:        int | None = Field(default=None, foreign_key="users.id") 
+    date_started:   datetime | None
     date_complete:  datetime | None
 
 class Part(PartBase, table=True):

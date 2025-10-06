@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS story (
     id              SERIAL PRIMARY KEY,
     title           text CONSTRAINT title_chk CHECK (length(title) <= 50),
-    date_complete   timestamp
+    date_complete   timestamp,
+    locked          boolean DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS part (
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS part (
     part_text       text CONSTRAINT part_text_chk CHECK (length(part_text) <= 1000),
     story_id        integer REFERENCES story (id),
     user_id         integer REFERENCES users (id),
+    date_started    timestamp,
     date_complete   timestamp
 );
 

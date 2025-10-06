@@ -47,9 +47,11 @@ Page = CustomizedPage[
 ]
 add_pagination(app)
 
+
 @app.on_event('startup')
 def on_startup():
     create_db_and_tables()
+
 
 # # Logging time taken for each api request
 @app.middleware("http")
@@ -60,7 +62,9 @@ async def log_response_time(request: Request, call_next):
     print(f"Request: {request.url.path} completed in {process_time:.4f} seconds")
     return response 
 
+
 app.include_router(router)
+
 
 @app.get("/home")
 def get_response(session: SessionDep, current_user: dict = Depends(get_current_user)):
@@ -95,29 +99,50 @@ def get_part(session: SessionDep, current_user: dict = Depends(get_current_user)
     part = session.exec(select(Part).where(and_(Part.user_id == user.id, is_(Part.date_complete, None)))).first()
 
     if not part:
-        # get a random available part
+        # try to get a random unassigned part
         part = session.exec(select(Part).where(and_(is_(Part.date_complete, None),is_(Part.user_id, None))).order_by(func.random())).first()
-    
-        if not part: # no parts currently available so create one
-            # can we create a part for an existing story?
-            # get the first story with <5 completed parts
-            story_id = session.exec(select(Part.story_id).group_by(Part.story_id).having(func.count(Part.story_id) < 5)).first()
+        if part:
+            # assign the part to the user
+            part.user_id = user.id
+            part.date_started = datetime.now()
+            session.add(part)
+
+            # lock the story the part belongs to
+            story = session.get(Story, part.story_id)
+            story.locked = True
+            session.add(story)
+
+            session.commit()
+
+            print("Assigned existing part to user")
+        else:
+            # no available parts so create one
+            # try to get a random story that is not locked
+            story_id = session.exec(select(Story.id).where(is_(Story.locked, False)).order_by(func.random())).first()
             if story_id:
                 part_rows = session.exec(select(func.count(Part.story_id)).where(Part.story_id == story_id)).first()
                 new_part_number = int(part_rows) + 1
-
-                part = Part(part_number=new_part_number, part_text="", user_id=user.id, story_id=story_id)
+                part = Part(part_number=new_part_number, part_text="", user_id=user.id, story_id=story_id, date_started=datetime.now())
                 session.add(part)
+
+                story = session.get(Story, story_id)
+                story.locked = True
+                session.add(story)
+
                 session.commit()
+
+                print("Created new part for existing story and assigned to user")
             else:
                 # All stories have 5 parts so create a new story and a part
-                story = Story(title="")
+                story = Story(title="", locked=True)
                 session.add(story)
                 session.commit()
 
-                part = Part(part_number=1, part_text="", user_id=user.id, story_id=story.id)
+                part = Part(part_number=1, part_text="", user_id=user.id, story_id=story.id, date_started=datetime.now())
                 session.add(part)
                 session.commit()
+
+                print("Created new story and part and assigned to user")
 
     return part
 
@@ -145,51 +170,46 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
 
     date_complete = datetime.now()
     
-    # update part from database using request
-    db_part = session.get(Part, part_id)
+    # get part from request
     part_data = part.model_dump(exclude_unset=True)
     part_text = part_data.get("part_text")
 
-    # profanity check
+    # get part from database
+    db_part = session.get(Part, part_id)
+
+    # profanity check for part_text
     st = SafeText(language='en')
     text_results = st.check_profanity(text=part_text)
     if text_results:
-        status = 400 # Bad Request
-    else:
-        db_part.sqlmodel_update({"part_text": part_text, "date_complete": date_complete})
-        session.add(db_part)
+        return {"results": text_results, "status": 400}
+    db_part.sqlmodel_update({"part_text": part_text, "date_complete": date_complete})
 
     # update the story if necessary
     title_results = []
-    if db_part.part_number == 1 or db_part.part_number == 5:
-        db_story = session.get(Story, db_part.story_id)
-        if db_part.part_number == 1:
-            story_title = part_data.get("story_title")
+    db_story = session.get(Story, db_part.story_id)
 
-            # profanity check
-            title_results = st.check_profanity(text=story_title)
-            if title_results:
-                status = 400 # Bad Request
-            else:
-                db_story.sqlmodel_update({"title": story_title}) 
+    if db_part.part_number == 1:
+        story_title = part_data.get("story_title")
 
-        if db_part.part_number == 5:
-            db_story.sqlmodel_update({"date_complete": date_complete})
+        # profanity check on story title
+        title_results = st.check_profanity(text=story_title)
+        if title_results:
+            return {"results": title_results, "status": 400}
+        db_story.sqlmodel_update({"title": story_title})
 
-        if not title_results:
-            session.add(db_story)
+    if db_part.part_number == 5:
+        db_story.sqlmodel_update({"date_complete": date_complete})
 
-    results = title_results + text_results
+     # unlock the story for someone else to write the next part
+    if db_part.part_number != 5:
+        db_story.sqlmodel_update({"locked": False})
 
-    if not results:
-        # refresh the session with the saved data and return the part
+    if not title_results:
+        session.add(db_part)
+        session.add(db_story)
         session.commit()
-        session.refresh(db_part)
-        if db_part.part_number == 1 or db_part.part_number == 5:
-            session.refresh(db_story)
-        status = 200
     
-    return {"results": results, "status": status}
+    return {"results": title_results, "status": 200}
 
 
 # PATCH - save a part so you can come back to it (not complete)
@@ -230,8 +250,8 @@ def save_part(part_id: int, part: PartUpdate, session: SessionDep, current_user:
         
         # refresh the session with the saved data and return the part
         session.commit()
-        session.refresh(db_part)
-        session.refresh(db_story)
+        #session.refresh(db_part)
+        #session.refresh(db_story)
 
         status = 200
 
