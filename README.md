@@ -10,6 +10,7 @@ Some key features:
 - Uses pagination for displaying stories
 - Uses a Postgres database
 - Uses python-decouple to get config from the environment (e.g. .env file)
+- Checks profanity in submitted text using https://pypi.org/project/safetext/
 - Setup to deploy to Render
 
 I used this helpful guide to base the authentication on:
