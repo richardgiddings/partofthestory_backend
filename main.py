@@ -151,6 +151,9 @@ def get_part(session: SessionDep, current_user: dict = Depends(get_current_user)
 @app.get('/get_previous_part/', response_model=PartPublic)
 def get_previous_part(session: SessionDep, current_user: dict = Depends(get_current_user)):
 
+    # aside: we could part_number and story_id as parameters then just use the last query
+    # but this opens up people being able to see any story through urls
+
     # get the part assigned to the user 
     user_id = current_user['user_id']
     user = session.exec(select(Users).where(Users.auth_user_id == user_id)).first()
