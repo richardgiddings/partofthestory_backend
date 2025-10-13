@@ -151,7 +151,7 @@ def get_part(session: SessionDep, current_user: dict = Depends(get_current_user)
 @app.get('/get_previous_part/', response_model=PartPublic)
 def get_previous_part(session: SessionDep, current_user: dict = Depends(get_current_user)):
 
-    # aside: we could part_number and story_id as parameters then just use the last query
+    # aside: we could use part_number and story_id as parameters then just use the last query
     # but this opens up people being able to see any story through urls
 
     # get the part assigned to the user 
@@ -233,29 +233,22 @@ def save_part(part_id: int, part: PartUpdate, session: SessionDep, current_user:
     results = title_results + text_results
 
     if results:
-        status = 400 # # Bad Request
+        status = 400 # Bad Request
     else: 
-        # get the part we are updating from the database
-        db_part = session.get(Part, part_id)
+        # get the part and story we are updating from the database
+        # and update
 
-        # get the story we are updating
+        db_part = session.get(Part, part_id)
         db_story = session.get(Story, db_part.story_id)
 
-        # update the part db model with the request data
         db_part.sqlmodel_update({"part_text": part_text})
         session.add(db_part)
         
-        # update the story db model with the request data
-        # if we are writing the first part of the story
         if story_title is not None:
             db_story.sqlmodel_update({"title": story_title})
             session.add(db_story)
         
-        # refresh the session with the saved data and return the part
         session.commit()
-        #session.refresh(db_part)
-        #session.refresh(db_story)
-
         status = 200
 
     return {"results": results, "status": status}
