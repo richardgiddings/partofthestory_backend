@@ -267,15 +267,11 @@ def get_my_stories(session: SessionDep, current_user: dict = Depends(get_current
     # get distinct story_ids from parts by the logged in user
     user_id = current_user['user_id']
     user = session.exec(select(Users).where(Users.auth_user_id == user_id)).first()
-    story_ids = session.exec(select(Part.story_id).distinct().where(Part.user_id == user.id))
-    
-    story_id_list = []
-    for story_id in story_ids:
-        story_id_list.append(story_id)
+    story_ids = session.exec(select(Part.story_id).distinct().where(Part.user_id == user.id)).all()
 
     # now get the stories 
     stories = session.exec(
-                select(Story).where(and_(is_not(Story.date_complete, None), Story.id.in_(story_id_list)))
+                select(Story).where(and_(is_not(Story.date_complete, None), Story.id.in_(story_ids)))
                              .order_by(Story.date_complete)
             ).all()
 
