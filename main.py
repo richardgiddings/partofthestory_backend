@@ -72,9 +72,7 @@ def get_response(session: SessionDep, current_user: dict = Depends(get_current_u
     auth_user_id = current_user['user_id']
     user = session.exec(select(Users).where(Users.auth_user_id == auth_user_id)).first()
 
-    if user:
-        return {"message": "Welcome!", "user": current_user, "user_id": user.id}
-    return HTTPException(status_code=500, detail='Not logged in')
+    return {"message": "Welcome!", "user": current_user, "user_id": user.id}
 
 
 # GET - random completed story
