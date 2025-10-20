@@ -6,6 +6,7 @@ from pydantic import BaseModel
 # Users
 class UsersBase(SQLModel):
     auth_user_id:       str
+    refresh_token:      str
 
 class Users(UsersBase, table=True):
     id: int | None = Field(default=None, primary_key=True)

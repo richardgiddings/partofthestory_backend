@@ -36,7 +36,11 @@ oauth.register(
     authorize_state=config("SECRET_KEY"),
     redirect_uri=config("REDIRECT_URL"),
     jwks_uri="https://www.googleapis.com/oauth2/v3/certs",
-    client_kwargs={"scope": "openid profile email"},
+    client_kwargs={
+        "scope": "openid profile email",
+        "access_type": "offline",
+        "prompt": "consent",
+    },
 )
 
 # JWT Configurations
@@ -64,8 +68,6 @@ def get_current_user(access_token: Annotated[str | None, Cookie()] = None):
     try:
         payload = jwt.decode(access_token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
 
-        print("Token decoded successfully.")
-
         user_id: str = payload.get("sub")
         user_name: str = payload.get("user_name")
 
@@ -76,6 +78,71 @@ def get_current_user(access_token: Annotated[str | None, Cookie()] = None):
 
     except ExpiredSignatureError:
         # Specifically handle expired tokens
+        # https://github.com/mpdavis/python-jose/blob/master/jose/jwt.py#L174
+        traceback.print_exc()
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired. Please login again.")
+    except JWTError:
+        # Handle other JWT-related errors
+        traceback.print_exc()
+        raise credentials_exception
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+
+
+"""
+Get the currently logged in user and refresh the token
+"""
+def get_current_user_with_refresh(access_token: Annotated[str | None, Cookie()] = None):
+
+    print("Getting current user from token...")
+
+    if not access_token:
+        print("No access token found in cookies.")
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    print("Access token found, decoding...")
+
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(access_token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
+
+        user_id: str = payload.get("sub")
+        user_name: str = payload.get("user_name")
+
+        if user_id is None or user_name is None:
+            raise credentials_exception
+
+        print("Refreshing token...")
+
+        # Refresh the access token
+        with Session(engine) as session:
+            user = session.exec(select(Users).filter_by(auth_user_id=user_id)).first()
+        if user:
+            # Use refresh_token to get new access token from Google
+            response = requests.post("https://oauth2.googleapis.com/token", 
+                                        data={
+                                            "client_id": config("GOOGLE_CLIENT_ID"),
+                                            "client_secret": config("GOOGLE_CLIENT_SECRET"),
+                                            "grant_type": "refresh_token",
+                                            "refresh_token": user.refresh_token
+                                        }
+                                    )
+            expires_in = response.json().get("expires_in")
+
+            # Create JWT token
+            access_token_expires = timedelta(seconds=expires_in)
+            access_token = create_access_token(data={"sub": user_id, "user_name": user_name}, expires_delta=access_token_expires)
+
+        return {"user_id": user_id, "user_name": user_name, "access_token": access_token}
+
+    except ExpiredSignatureError:
+        # Specifically handle expired tokens
+        # https://github.com/mpdavis/python-jose/blob/master/jose/jwt.py#L174
         traceback.print_exc()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired. Please login again.")
     except JWTError:
@@ -98,7 +165,8 @@ async def login(request: Request):
     redirect_url = config("REDIRECT_URL")
     request.session["login_redirect"] = frontend_url 
 
-    return await oauth.auth.authorize_redirect(request, redirect_url, prompt="consent")
+    return await oauth.auth.authorize_redirect(request, redirect_url, prompt="consent", access_type="offline")
+
 
 @router.route("/auth")
 async def auth(request: Request):
@@ -114,6 +182,8 @@ async def auth(request: Request):
         user_info = google_response.json()
     except Exception as e:
         raise HTTPException(status_code=401, detail="Google authentication failed.")
+
+    refresh_token = token.get("refresh_token")
 
     user = token.get("userinfo")
     expires_in = token.get("expires_in")
@@ -138,10 +208,7 @@ async def auth(request: Request):
     access_token_expires = timedelta(seconds=expires_in)
     access_token = create_access_token(data={"sub": user_id, "user_name": user_name}, expires_delta=access_token_expires)
 
-    session_id = str(uuid.uuid4())
-
-    # Insert user_id in database if not already there
-    insert_user(user_id=user_id)
+    insert_user_details(user_id=user_id, refresh_token=refresh_token)
 
     redirect_url = request.session.pop("login_redirect", "")
     response = RedirectResponse(redirect_url)
@@ -166,11 +233,14 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 """
 Check whether logged in user already on database and if not add them
+Update refresh_token on database
 """
-def insert_user(user_id: str):
+def insert_user_details(user_id: str, refresh_token: str):
     with Session(engine) as session:
-        users = session.exec(select(Users).filter_by(auth_user_id=user_id)).all()
-        if not users:
-            user = Users(auth_user_id=user_id)
-            session.add(user)
-            session.commit()
+        user = session.exec(select(Users).filter_by(auth_user_id=user_id)).first()
+        if not user:
+            user = Users(auth_user_id=user_id, refresh_token=refresh_token)
+        else:
+            user.refresh_token = refresh_token
+        session.add(user)
+        session.commit()

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Header, HTTPException, Depends, Request, Query
+from fastapi import FastAPI, Header, HTTPException, Depends, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 from sqlalchemy import func, and_, or_
@@ -87,7 +87,11 @@ def get_random_story(session: SessionDep):
 
 # GET - a random available part
 @app.get('/get_part/', response_model=PartPublicWithStory)
-def get_part(session: SessionDep, current_user: dict = Depends(get_current_user)):
+def get_part(
+        session: SessionDep, 
+        current_user: dict = Depends(get_current_user_with_refresh), 
+        response: Response = None
+    ):
 
     # get the user id from the database using authenticated user_id
     user_id = current_user['user_id']
@@ -141,6 +145,18 @@ def get_part(session: SessionDep, current_user: dict = Depends(get_current_user)
                 session.commit()
 
                 print("Created new story and part and assigned to user")
+
+    # Set new access token in cookie
+    access_token = current_user['access_token']
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        domain=config("COOKIE_DOMAIN"),
+        path=config("COOKIE_PATH"),
+        secure=True,  # Ensure you're using HTTPS
+        samesite=config("COOKIE_SAMESITE"),  # Set the SameSite attribute to None
+    )
 
     return part
 
@@ -253,7 +269,11 @@ def save_part(part_id: int, part: PartUpdate, session: SessionDep, current_user:
 
 # GET - a user's stories
 @app.get('/my_stories/')
-def get_my_stories(session: SessionDep, current_user: dict = Depends(get_current_user)) -> Page[StoryPublicWithParts]:
+def get_my_stories(
+        session: SessionDep, 
+        current_user: dict = Depends(get_current_user_with_refresh), 
+        response: Response = None
+    ) -> Page[StoryPublicWithParts]:
 
     # get distinct story_ids from parts by the logged in user
     user_id = current_user['user_id']
@@ -265,5 +285,17 @@ def get_my_stories(session: SessionDep, current_user: dict = Depends(get_current
                 select(Story).where(and_(is_not(Story.date_complete, None), Story.id.in_(story_ids)))
                              .order_by(Story.date_complete)
             ).all()
+
+    # Set new access token in cookie
+    access_token = current_user['access_token']
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        domain=config("COOKIE_DOMAIN"),
+        path=config("COOKIE_PATH"),
+        secure=True,  # Ensure you're using HTTPS
+        samesite=config("COOKIE_SAMESITE"),  # Set the SameSite attribute to None
+    )
 
     return paginate(stories)

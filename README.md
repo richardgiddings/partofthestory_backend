@@ -7,6 +7,7 @@ https://github.com/richardgiddings/partofthestory_frontend
 
 Some key features:
 - Uses Google authentication for login
+- Uses refresh token to refresh access token
 - Uses pagination for displaying stories
 - Uses a Postgres database
 - Uses python-decouple to get config from the environment (e.g. .env file)
@@ -53,9 +54,6 @@ openssl rand -hex 32
 
 ## Future improvements?
 
-The biggest improvement that is needed is session refresh. Finding it difficult to find good information on how to do this though.
-
-Other less urgent possible improvements include:
 - An unassign button for when a user gets bored of writing a part. Currently they can't get another part and the story stops
 - A job that runs every night on the database that unassigns parts that haven't been touched for X days
 - Voting on stories. Maybe the best stories have more of a weight in showing random story? Or you can view Top Stories?

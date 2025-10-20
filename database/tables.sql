@@ -2,7 +2,8 @@ BEGIN TRANSACTION;
 
 CREATE TABLE IF NOT EXISTS users (
     id              SERIAL PRIMARY KEY,
-    auth_user_id    text
+    auth_user_id    text,
+    refresh_token   text
 );
 
 CREATE TABLE IF NOT EXISTS story (
