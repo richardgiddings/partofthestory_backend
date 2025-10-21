@@ -170,10 +170,14 @@ async def login(request: Request):
 
 @router.route("/auth")
 async def auth(request: Request):
+
+    redirect_url = request.session.pop("login_redirect", "")
+
     try:
         token = await oauth.auth.authorize_access_token(request)
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Google authentication failed.")
+        print(f"Google authentication failed: {e}")
+        return RedirectResponse(redirect_url)
 
     try:
         user_info_endpoint = "https://www.googleapis.com/oauth2/v2/userinfo"
@@ -181,7 +185,8 @@ async def auth(request: Request):
         google_response = requests.get(user_info_endpoint, headers=headers)
         user_info = google_response.json()
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Google authentication failed.")
+        print(f"Google authentication failed: {e}")
+        return RedirectResponse(redirect_url)
 
     refresh_token = token.get("refresh_token")
 
@@ -199,10 +204,12 @@ async def auth(request: Request):
     print(f'User details: [user_id = {user_id}, user_name = {user_name} ]')
 
     if iss not in ["https://accounts.google.com", "accounts.google.com"]:
-        raise HTTPException(status_code=401, detail="Google authentication failed.")
+        print(f"Google authentication failed: Invalid issuer")
+        return RedirectResponse(redirect_url)
 
     if user_id is None:
-        raise HTTPException(status_code=401, detail="Google authentication failed.")
+        print(f"Google authentication failed: Invalid user_id")
+        return RedirectResponse(redirect_url)
 
     # Create JWT token
     access_token_expires = timedelta(seconds=expires_in)
@@ -210,7 +217,6 @@ async def auth(request: Request):
 
     insert_user_details(user_id=user_id, refresh_token=refresh_token)
 
-    redirect_url = request.session.pop("login_redirect", "")
     response = RedirectResponse(redirect_url)
     response.set_cookie(
         key="access_token",
