@@ -66,13 +66,13 @@ async def log_response_time(request: Request, call_next):
 app.include_router(router)
 
 
-@app.get("/home")
-def get_response(session: SessionDep, current_user: dict = Depends(get_current_user)):
+@app.get("/user")
+def get_user(session: SessionDep, current_user: dict = Depends(get_current_user)):
 
     auth_user_id = current_user['user_id']
     user = session.exec(select(Users).where(Users.auth_user_id == auth_user_id)).first()
 
-    return {"message": "Welcome!", "user": current_user, "user_id": user.id}
+    return {"user": current_user, "user_id": user.id}
 
 
 # GET - random completed story
