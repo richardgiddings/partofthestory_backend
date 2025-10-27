@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS story (
     id              SERIAL PRIMARY KEY,
     title           text CONSTRAINT title_chk CHECK (length(title) <= 50),
     date_complete   timestamp,
-    locked          boolean DEFAULT false
+    locked          boolean DEFAULT false,
+    last_user_id    integer
 );
 
 CREATE TABLE IF NOT EXISTS part (

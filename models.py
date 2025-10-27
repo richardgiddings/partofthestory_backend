@@ -19,6 +19,7 @@ class StoryBase(SQLModel):
     title:          str | None
     date_complete:  datetime | None
     locked:         bool = Field(default=False)
+    last_user_id:   int | None = Field(default=None)
 
 class Story(StoryBase, table=True):
     id:    int = Field(default=None, primary_key=True)

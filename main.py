@@ -120,7 +120,8 @@ def get_part(
         else:
             # no available parts so create one
             # try to get a random story that is not locked
-            story_id = session.exec(select(Story.id).where(is_(Story.locked, False)).order_by(func.random())).first()
+            # (and you were not the last person to write a part for it)
+            story_id = session.exec(select(Story.id).where(and_(is_(Story.locked, False)), Story.last_user_id != user.id).order_by(func.random())).first()
             if story_id:
                 part_rows = session.exec(select(func.count(Part.story_id)).where(Part.story_id == story_id)).first()
                 new_part_number = int(part_rows) + 1
@@ -217,9 +218,12 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
     if db_part.part_number == 5:
         db_story.sqlmodel_update({"date_complete": date_complete})
 
-     # unlock the story for someone else to write the next part
+    # unlock the story for someone else to write the next part
     if db_part.part_number != 5:
         db_story.sqlmodel_update({"locked": False})
+
+    # the last user to write a part for this story
+    db_story.sqlmodel_update({"last_user_id": db_part.user_id})
 
     if not title_results:
         session.add(db_part)
