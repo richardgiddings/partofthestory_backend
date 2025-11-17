@@ -101,51 +101,34 @@ def get_part(
     part = session.exec(select(Part).where(and_(Part.user_id == user.id, is_(Part.date_complete, None)))).first()
 
     if not part:
-        # try to get a random unassigned part
-        part = session.exec(select(Part).where(and_(is_(Part.date_complete, None),is_(Part.user_id, None))).order_by(func.random())).first()
-        if part:
-            # assign the part to the user
-            part.user_id = user.id
-            part.date_started = datetime.now()
+        # no part assigned so create one
+        # try to get a random story that is not locked
+        # (and you were not the last person to write a part for it)
+        story_id = session.exec(select(Story.id).where(and_(is_(Story.locked, False)), Story.last_user_id != user.id).order_by(func.random())).first()
+        if story_id:
+            part_rows = session.exec(select(func.count(Part.story_id)).where(Part.story_id == story_id)).first()
+            new_part_number = int(part_rows) + 1
+            part = Part(part_number=new_part_number, part_text="", user_id=user.id, story_id=story_id, date_started=datetime.now())
             session.add(part)
 
-            # lock the story the part belongs to
-            story = session.get(Story, part.story_id)
+            story = session.get(Story, story_id)
             story.locked = True
             session.add(story)
 
             session.commit()
 
-            print("Assigned existing part to user")
+            print("Created new part for existing story and assigned to user")
         else:
-            # no available parts so create one
-            # try to get a random story that is not locked
-            # (and you were not the last person to write a part for it)
-            story_id = session.exec(select(Story.id).where(and_(is_(Story.locked, False)), Story.last_user_id != user.id).order_by(func.random())).first()
-            if story_id:
-                part_rows = session.exec(select(func.count(Part.story_id)).where(Part.story_id == story_id)).first()
-                new_part_number = int(part_rows) + 1
-                part = Part(part_number=new_part_number, part_text="", user_id=user.id, story_id=story_id, date_started=datetime.now())
-                session.add(part)
+            # All stories have 5 parts (or you wrote the last part) so create a new story and a part
+            story = Story(title="", locked=True)
+            session.add(story)
+            session.commit()
 
-                story = session.get(Story, story_id)
-                story.locked = True
-                session.add(story)
+            part = Part(part_number=1, part_text="", user_id=user.id, story_id=story.id, date_started=datetime.now())
+            session.add(part)
+            session.commit()
 
-                session.commit()
-
-                print("Created new part for existing story and assigned to user")
-            else:
-                # All stories have 5 parts so create a new story and a part
-                story = Story(title="", locked=True)
-                session.add(story)
-                session.commit()
-
-                part = Part(part_number=1, part_text="", user_id=user.id, story_id=story.id, date_started=datetime.now())
-                session.add(part)
-                session.commit()
-
-                print("Created new story and part and assigned to user")
+            print("Created new story and part and assigned to user")
 
     # Set new access token in cookie
     access_token = current_user['access_token']
