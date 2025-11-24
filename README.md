@@ -54,7 +54,6 @@ openssl rand -hex 32
 
 ## Future improvements?
 
-- An unassign button for when a user gets bored of writing a part. Currently they can't get another part and the story stops
-- A job that runs every night on the database that unassigns parts that haven't been touched for X days
 - Voting on stories. Maybe the best stories have more of a weight in showing random story? Or you can view Top Stories?
-- Getting the user details too many times
+- Locking the accounts of troublemaker users
+- Getting the user details too many times and other speed improvements
