@@ -211,11 +211,13 @@ async def auth(request: Request):
         print(f"Google authentication failed: Invalid user_id")
         return RedirectResponse(redirect_url)
 
+    success = check_and_insert_user_details(user_id=user_id, refresh_token=refresh_token)
+    if not success:
+        return RedirectResponse(redirect_url + "?message=User account is locked")
+
     # Create JWT token
     access_token_expires = timedelta(seconds=expires_in)
     access_token = create_access_token(data={"sub": user_id, "user_name": user_name}, expires_delta=access_token_expires)
-
-    insert_user_details(user_id=user_id, refresh_token=refresh_token)
 
     response = RedirectResponse(redirect_url)
     response.set_cookie(
@@ -241,12 +243,17 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 Check whether logged in user already on database and if not add them
 Update refresh_token on database
 """
-def insert_user_details(user_id: str, refresh_token: str):
+def check_and_insert_user_details(user_id: str, refresh_token: str):
     with Session(engine) as session:
         user = session.exec(select(Users).filter_by(auth_user_id=user_id)).first()
         if not user:
             user = Users(auth_user_id=user_id, refresh_token=refresh_token)
         else:
+            if user.locked:
+                print(f"User {user_id} attempted to login but is locked")
+                return False
             user.refresh_token = refresh_token
         session.add(user)
         session.commit()
+
+    return True

@@ -12,6 +12,7 @@ Some key features:
 - Uses a Postgres database
 - Uses python-decouple to get config from the environment (e.g. .env file)
 - Checks profanity in submitted text using https://pypi.org/project/safetext/
+- Lock the accounts of users causing trouble
 - Setup to deploy to Render
 
 I used this helpful guide to base the authentication on:
@@ -55,5 +56,4 @@ openssl rand -hex 32
 ## Future improvements?
 
 - Voting on stories. Maybe the best stories have more of a weight in showing random story? Or you can view Top Stories?
-- Locking the accounts of troublemaker users
 - Getting the user details too many times and other speed improvements

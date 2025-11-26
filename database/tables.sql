@@ -7,11 +7,13 @@ BEGIN TRANSACTION;
     - id:            SERIAL PRIMARY KEY
     - auth_user_id:  Google authentication user ID
     - refresh_token: Refresh token from Google
+    - locked:        User can no longer login (misuse of website)
 */
 CREATE TABLE IF NOT EXISTS users (
     id              SERIAL PRIMARY KEY,
     auth_user_id    text,
-    refresh_token   text
+    refresh_token   text,
+    locked          boolean DEFAULT false
 );
 
 
