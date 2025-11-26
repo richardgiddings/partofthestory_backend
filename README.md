@@ -55,5 +55,6 @@ openssl rand -hex 32
 
 ## Future improvements?
 
-- Voting on stories. Maybe the best stories have more of a weight in showing random story? Or you can view Top Stories?
+- Show how many completed stories there are under the title
 - Getting the user details too many times and other speed improvements
+- Voting on stories. Maybe the best stories have more of a weight in showing random story? Or you can view Top Stories?
