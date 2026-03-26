@@ -1,6 +1,6 @@
 # A FastAPI backend
 
-This is for a website I have built that enables you to write stories with other users. See the (README for the frontend)[https://github.com/richardgiddings/partofthestory_frontend] for more detail.
+This is for a website I have built that enables you to write stories with other users. See the [README for the frontend](https://github.com/richardgiddings/partofthestory_frontend) for more detail.
 
 A backend for the React Router frontend here:
 https://github.com/richardgiddings/partofthestory_frontend
