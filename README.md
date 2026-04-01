@@ -53,6 +53,10 @@ NOTE: Keys can be generated with a command like:
 openssl rand -hex 32 
 ```
 
+## Database Schema
+
+The database directory contains a sql file with the database schema required. This file can just be run against the database.
+
 ## Future improvements?
 
 - Show how many completed stories there are under the title
