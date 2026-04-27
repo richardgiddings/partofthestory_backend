@@ -14,6 +14,7 @@ Some key features:
 - Checks profanity in submitted text using https://pypi.org/project/safetext/
 - Lock the accounts of users causing trouble
 - Setup to deploy to Render
+- A [cron job](https://github.com/richardgiddings/partofthestory-cronjob) runs every day to unassign story parts if they have not been completed within 3 days of them being started.
 
 I used this helpful guide to base the authentication on:
 https://blog.futuresmart.ai/integrating-google-authentication-with-fastapi-a-step-by-step-guide
