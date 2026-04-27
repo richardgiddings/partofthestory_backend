@@ -61,5 +61,5 @@ The database directory contains a sql file with the database schema required. Th
 ## Future improvements?
 
 - Show how many completed stories there are under the title
-- Getting the user details too many times and other speed improvements
+- Speed improvements: maybe add an index on auth_user_id column of User table as used in 4 places?
 - Voting on stories. Maybe the best stories have more of a weight in showing random story? Or you can view Top Stories?
