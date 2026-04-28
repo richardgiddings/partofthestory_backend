@@ -23,6 +23,8 @@ from database import SessionDep, get_session, create_db_and_tables
 from safetext import SafeText
 
 
+SAFE_TEXT = SafeText(language='en')
+
 # CORS middleware
 ALLOWED_ORIGINS = config("ALLOWED_ORIGINS")
 app.add_middleware(
@@ -179,8 +181,7 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
     db_part = session.get(Part, part_id)
 
     # profanity check for part_text
-    st = SafeText(language='en')
-    text_results = st.check_profanity(text=part_text)
+    text_results = SAFE_TEXT.check_profanity(text=part_text)
     if text_results:
         return {"results": text_results, "status": 400}
     db_part.sqlmodel_update({"part_text": part_text, "date_complete": date_complete})
@@ -193,7 +194,7 @@ def complete_part(part_id: int, part: PartUpdate, session: SessionDep, current_u
         story_title = part_data.get("story_title")
 
         # profanity check on story title
-        title_results = st.check_profanity(text=story_title)
+        title_results = SAFE_TEXT.check_profanity(text=story_title)
         if title_results:
             return {"results": title_results, "status": 400}
         db_story.sqlmodel_update({"title": story_title})
@@ -226,11 +227,10 @@ def save_part(part_id: int, part: PartUpdate, session: SessionDep, current_user:
     story_title = part_data.get("story_title")
 
     # profanity check
-    st = SafeText(language='en')
     title_results = []
     if story_title:
-        title_results = st.check_profanity(text=story_title)
-    text_results = st.check_profanity(text=part_text)
+        title_results = SAFE_TEXT.check_profanity(text=story_title)
+    text_results = SAFE_TEXT.check_profanity(text=part_text)
     results = title_results + text_results
 
     if results:
